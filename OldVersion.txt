@@ -1,0 +1,533 @@
+almost working (batch collection of IDs)
+import tkinter as tk
+from tkinter import messagebox
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+
+# ============================================================
+#  SAFE AUDIO FEATURES FETCHER (FIX FOR 403 ERRORS)
+# ============================================================
+def get_audio_features_safe(sp, track_ids, batch_size=25):
+    """
+    Spotify 403s if the ?ids= URL becomes too long.
+    This fetches audio features in small safe batches.
+    """
+    all_features = []
+    print(f"\n🎛 Fetching audio features in safe batches ≤ {batch_size}...")
+
+    for i in range(0, len(track_ids), batch_size):
+        batch = track_ids[i:i + batch_size]
+        print(f"  • Batch {i//batch_size + 1} → {len(batch)} tracks")
+
+        try:
+            features = sp.audio_features(batch)
+            if features:
+                all_features.extend(features)
+        except Exception as e:
+            print(f"❌ Error fetching batch {i}-{i+len(batch)-1}: {e}")
+            continue
+
+    print(f"✔ Total audio features returned: {len(all_features)}")
+    return [f for f in all_features if f]
+
+
+# ============================================================
+#  FETCH ALL TRACKS FROM A PLAYLIST (PAGINATED)
+# ============================================================
+def get_playlist_track_ids(sp, playlist_url):
+    print("\n📥 Fetching playlist (paginated)...")
+    playlist_id = playlist_url.split("/")[-1].split("?")[0]
+
+    track_ids = []
+    limit = 100
+    offset = 0
+
+    while True:
+        data = sp.playlist_items(playlist_id, limit=limit, offset=offset)
+        items = data["items"]
+        print(f"  • Fetched {len(items)} items at offset {offset}")
+
+        for item in items:
+            track = item.get("track")
+            if track and track.get("id"):
+                track_ids.append(track["id"])
+
+        if len(items) < limit:
+            break
+
+        offset += limit
+
+    print(f"✔ Total Spotify track IDs collected: {len(track_ids)}")
+    return track_ids
+
+
+# ============================================================
+#  SIMPLE MOOD FILTER
+# ============================================================
+def filter_tracks_by_mood(features, mood):
+    """
+    Very simple example logic.
+    You can customize thresholds.
+    """
+    print(f"\n🎚 Applying mood filter: {mood}")
+
+    if mood == "Happy":
+        return [f for f in features if f["valence"] > 0.6 and f["energy"] > 0.6]
+
+    elif mood == "Sad":
+        return [f for f in features if f["valence"] < 0.4]
+
+    elif mood == "Chill":
+        return [f for f in features if f["energy"] < 0.4]
+
+    elif mood == "Energetic":
+        return [f for f in features if f["energy"] > 0.7]
+
+    return features
+
+
+# ============================================================
+#  MAIN RECOMMENDATION PROCESS
+# ============================================================
+def run_process(mood, playlist_url, output_box):
+    try:
+        output_box.delete("1.0", tk.END)
+
+        # Authenticate Spotify
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+            client_id="c36d7d32f4dd4b6eb93e96602572ed22",
+            client_secret="0dcc16480ec14704813a9aa7bf52554e",
+            redirect_uri="http://127.0.0.1:8888/callback",
+            scope="playlist-read-private playlist-modify-private playlist-modify-public"
+        ))
+
+        # Step 1 — Fetch playlist tracks
+        track_ids = get_playlist_track_ids(sp, playlist_url)
+
+        # Step 2 — fetch audio features safely
+        features = get_audio_features_safe(sp, track_ids, batch_size=25)
+
+        # Step 3 — filter by mood
+        filtered = filter_tracks_by_mood(features, mood)
+        filtered_ids = [f["id"] for f in filtered]
+
+        # Step 4 — create new playlist
+        user_id = sp.current_user()["id"]
+        new_playlist = sp.user_playlist_create(
+            user=user_id,
+            name=f"{mood} Mix from Your Playlist",
+            public=False
+        )
+
+        # Step 5 — add songs to new playlist
+        if filtered_ids:
+            sp.playlist_add_items(new_playlist["id"], filtered_ids)
+
+        output_box.insert(tk.END, "🎉 DONE!\n")
+        output_box.insert(tk.END, f"Created playlist: {new_playlist['external_urls']['spotify']}\n")
+        output_box.insert(tk.END, f"Added {len(filtered_ids)} tracks.\n")
+
+    except Exception as e:
+        output_box.insert(tk.END, f"❌ ERROR: {e}\n")
+        print(e)
+
+
+# ============================================================
+#  TKINTER GUI
+# ============================================================
+root = tk.Tk()
+root.title("Spotify Mood Playlist Generator")
+root.geometry("500x450")
+
+tk.Label(root, text="Enter Spotify Playlist URL:", font=("Arial", 12)).pack(pady=5)
+playlist_entry = tk.Entry(root, width=50)
+playlist_entry.pack()
+
+
+def make_button(mood):
+    return tk.Button(root, text=mood, width=20,
+                     command=lambda: run_process(mood, playlist_entry.get(), output_box))
+
+
+make_button("Happy").pack(pady=3)
+make_button("Sad").pack(pady=3)
+make_button("Chill").pack(pady=3)
+make_button("Energetic").pack(pady=3)
+
+output_box = tk.Text(root, height=12, width=60)
+output_box.pack(pady=10)
+
+root.mainloop()
+
+
+almost working (individually geting every track ID)
+import tkinter as tk
+from tkinter import messagebox
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+
+# ============================================================
+#  SAFE AUDIO FEATURES FETCHER (FIX FOR 403 ERRORS)
+# ============================================================
+def get_audio_features_safe(sp, track_ids):
+
+    all_features = []
+    print(f"\n🎛 Fetching audio features one-by-one...")
+    
+    for index, tid in enumerate(track_ids):
+        try:
+            feature  = sp.audio_features(tid)[0]
+            if feature:
+                all_features.append(feature)
+                print(f"\n track {index+1} successfully proccessed")
+            else:
+                print(f"\n track {index+1} has no features")
+                continue
+        except Exception as e:
+            print(f"\nerror in processing track {index+1}")
+
+    print(f"✔ Total audio features returned: {len(all_features)}")
+    return all_features 
+
+
+# ============================================================
+#  FETCH ALL TRACKS FROM A PLAYLIST (PAGINATED)
+# ============================================================
+def get_playlist_track_ids(sp, playlist_url):
+    print("\n📥 Fetching playlist (paginated)...")
+    playlist_id = playlist_url.split("/")[-1].split("?")[0]
+
+    track_ids = []
+    limit = 100
+    offset = 0
+
+    while True:
+        data = sp.playlist_items(playlist_id, limit=limit, offset=offset)
+        items = data["items"]
+        print(f"  • Fetched {len(items)} items at offset {offset}")
+
+        for item in items:
+            track = item.get("track")
+            if track and track.get("id"):
+                track_ids.append(track["id"])
+
+        if len(items) < limit:
+            break
+
+        offset += limit
+
+    print(f"✔ Total Spotify track IDs collected: {len(track_ids)}")
+    return track_ids
+
+
+# ============================================================
+#  SIMPLE MOOD FILTER
+# ============================================================
+def filter_tracks_by_mood(features, mood):
+    """
+    Very simple example logic.
+    You can customize thresholds.
+    """
+    print(f"\n🎚 Applying mood filter: {mood}")
+
+    if mood == "Happy":
+        return [f for f in features if f["valence"] > 0.6 and f["energy"] > 0.6]
+
+    elif mood == "Sad":
+        return [f for f in features if f["valence"] < 0.4]
+
+    elif mood == "Chill":
+        return [f for f in features if f["energy"] < 0.4]
+
+    elif mood == "Energetic":
+        return [f for f in features if f["energy"] > 0.7]
+
+    return features
+
+
+# ============================================================
+#  MAIN RECOMMENDATION PROCESS
+# ============================================================
+def run_process(mood, playlist_url, output_box):
+    try:
+        output_box.delete("1.0", tk.END)
+
+        # Authenticate Spotify
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+            client_id="c36d7d32f4dd4b6eb93e96602572ed22",
+            client_secret="93e89fe64ff04b0e818c793e0d45091b",
+            redirect_uri="http://127.0.0.1:8888/callback",
+            scope="playlist-read-private playlist-modify-private playlist-modify-public"
+        ))
+
+        # Step 1 — Fetch playlist tracks
+        track_ids = get_playlist_track_ids(sp, playlist_url)
+
+        # Step 2 — fetch audio features safely
+        features = get_audio_features_safe(sp, track_ids)
+
+        # Step 3 — filter by mood
+        filtered = filter_tracks_by_mood(features, mood)
+        filtered_ids = [f["id"] for f in filtered]
+
+        # Step 4 — create new playlist
+        user_id = sp.current_user()["id"]
+        new_playlist = sp.user_playlist_create(
+            user=user_id,
+            name=f"{mood} Mix from Your Playlist",
+            public=False
+        )
+
+        # Step 5 — add songs to new playlist
+        if filtered_ids:
+            sp.playlist_add_items(new_playlist["id"], filtered_ids)
+
+        output_box.insert(tk.END, "🎉 DONE!\n")
+        output_box.insert(tk.END, f"Created playlist: {new_playlist['external_urls']['spotify']}\n")
+        output_box.insert(tk.END, f"Added {len(filtered_ids)} tracks.\n")
+
+    except Exception as e:
+        output_box.insert(tk.END, f"❌ ERROR: {e}\n")
+        print(e)
+
+
+# ============================================================
+#  TKINTER GUI
+# ============================================================
+root = tk.Tk()
+root.title("Spotify Mood Playlist Generator")
+root.geometry("500x450")
+
+tk.Label(root, text="Enter Spotify Playlist URL:", font=("Arial", 12)).pack(pady=5)
+playlist_entry = tk.Entry(root, width=50)
+playlist_entry.pack()
+
+
+def make_button(mood):
+    return tk.Button(root, text=mood, width=20,
+                     command=lambda: run_process(mood, playlist_entry.get(), output_box))
+
+
+make_button("Happy").pack(pady=3)
+make_button("Sad").pack(pady=3)
+make_button("Chill").pack(pady=3)
+make_button("Energetic").pack(pady=3)
+
+output_box = tk.Text(root, height=12, width=60)
+output_box.pack(pady=10)
+
+root.mainloop()
+
+WORKS!!!!!!!!!!!
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+import musicbrainzngs
+import requests
+import time
+import tkinter as tk
+from tkinter import ttk, messagebox
+import threading
+
+# ============================
+# CONFIG
+# ============================
+CLIENT_ID = "c36d7d32f4dd4b6eb93e96602572ed22"
+CLIENT_SECRET = "93e89fe64ff04b0e818c793e0d45091b"
+REDIRECT_URI = "http://127.0.0.1:8888/callback"
+SCOPE = "playlist-read-private playlist-modify-private playlist-modify-public"
+
+# Initialize MusicBrainz
+musicbrainzngs.set_useragent("MoodSelectorApp", "1.0", "niclai800@gmail.com")
+
+
+# =====================================================
+# SPOTIFY CLIENT
+# =====================================================
+def get_spotify_client():
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        redirect_uri=REDIRECT_URI,
+        scope=SCOPE
+    ))
+    return sp
+
+
+# =====================================================
+# FIND MBID FROM MUSICBRAINZ
+# =====================================================
+def find_mbid(track_name, artist_name):
+    try:
+        result = musicbrainzngs.search_recordings(
+            recording=track_name,
+            artist=artist_name,
+            limit=1
+        )
+        if result['recording-list']:
+            return result['recording-list'][0]['id']
+    except:
+        pass
+    return None
+
+
+# =====================================================
+# CALL ACOUSTICBRAINZ
+# =====================================================
+def get_acousticbrainz_mood(mbid):
+    url = f"https://acousticbrainz.org/{mbid}/high-level"
+    try:
+        r = requests.get(url, timeout=3)
+        if r.status_code == 200:
+            return r.json()
+    except:
+        return None
+    return None
+
+
+# =====================================================
+# MOOD MATCHER
+# =====================================================
+def track_matches_mood(acb_data, desired_mood):
+    if not acb_data or "highlevel" not in acb_data:
+        return False
+
+    moods = acb_data["highlevel"]
+
+    mood_map = {
+        "happy": moods["mood_happy"]["probability"],
+        "sad": moods["mood_sad"]["probability"],
+        "relaxed": moods["mood_relaxed"]["probability"],
+        "aggressive": moods["mood_aggressive"]["probability"],
+        "party": moods["mood_party"]["probability"],
+        "acoustic": moods["mood_acoustic"]["probability"]
+    }
+
+    if desired_mood not in mood_map:
+        return False
+
+    # Threshold
+    return mood_map[desired_mood] > 0.5
+
+
+# =====================================================
+# FILTER PLAYLIST
+# =====================================================
+def filter_playlist_by_mood(sp, playlist_id, desired_mood, log_callback):
+    tracks = sp.playlist_tracks(playlist_id)["items"]
+    matched_tracks = []
+
+    for idx, item in enumerate(tracks):
+        track = item["track"]
+        name = track["name"]
+        artist = track["artists"][0]["name"]
+        spotify_id = track["id"]
+
+        log_callback(f"Analyzing {idx+1}/{len(tracks)}: {name} — {artist}")
+
+        # 1. MBID
+        mbid = find_mbid(name, artist)
+        if not mbid:
+            log_callback("  ❌ No MBID found")
+            continue
+
+        # 2. AcousticBrainz
+        acb = get_acousticbrainz_mood(mbid)
+        if not acb:
+            log_callback("  ❌ No AcousticBrainz data")
+            continue
+
+        # 3. Mood match?
+        if track_matches_mood(acb, desired_mood):
+            log_callback("  ✅ MATCHES mood!")
+            matched_tracks.append(spotify_id)
+        else:
+            log_callback("  ❌ Does NOT match mood")
+
+        time.sleep(1)
+
+    return matched_tracks
+
+
+# =====================================================
+# CREATE OUTPUT PLAYLIST
+# =====================================================
+def create_filtered_playlist(sp, user_id, original_name, mood, track_ids):
+    new_name = f"{original_name} — {mood} mood"
+    playlist = sp.user_playlist_create(user_id, new_name)
+
+    for i in range(0, len(track_ids), 100):
+        sp.playlist_add_items(playlist["id"], track_ids[i:i+100])
+
+    return playlist["external_urls"]["spotify"]
+
+
+# =====================================================
+# TKINTER GUI LOGIC
+# =====================================================
+def run_mood_filter():
+    playlist_url = playlist_entry.get().strip()
+    mood = mood_combo.get().strip()
+
+    if playlist_url == "" or mood == "":
+        messagebox.showerror("Error", "Please enter a playlist URL and select a mood.")
+        return
+
+    log_text.delete(1.0, tk.END)
+    log_text.insert(tk.END, "Logging in to Spotify...\n")
+
+    def log(msg):
+        log_text.insert(tk.END, msg + "\n")
+        log_text.see(tk.END)
+
+    def process():
+        try:
+            sp = get_spotify_client()
+            playlist_id = playlist_url.split("/")[-1].split("?")[0]
+            playlist = sp.playlist(playlist_id)
+            original_name = playlist["name"]
+            user_id = sp.current_user()["id"]
+
+            log("Filtering playlist...")
+
+            matches = filter_playlist_by_mood(sp, playlist_id, mood, log)
+
+            log(f"\nFound {len(matches)} matching tracks.")
+
+            if matches:
+                url = create_filtered_playlist(sp, user_id, original_name, mood, matches)
+                log(f"\n🎉 Playlist created:\n{url}")
+            else:
+                log("\nNo tracks match the selected mood.")
+        except Exception as e:
+            log(f"\nError: {str(e)}")
+
+    threading.Thread(target=process).start()
+
+
+# =====================================================
+# TKINTER UI
+# =====================================================
+root = tk.Tk()
+root.title("Mood Music Selector")
+root.geometry("550x500")
+
+tk.Label(root, text="Spotify Playlist URL or ID").pack(pady=5)
+playlist_entry = tk.Entry(root, width=60)
+playlist_entry.pack()
+
+tk.Label(root, text="Select Mood").pack(pady=5)
+
+mood_options = ["happy", "sad", "relaxed", "aggressive", "party", "acoustic"]
+mood_combo = ttk.Combobox(root, values=mood_options, state="readonly")
+mood_combo.pack()
+
+run_button = tk.Button(root, text="Generate Mood Playlist", command=run_mood_filter)
+run_button.pack(pady=15)
+
+log_text = tk.Text(root, height=18, width=65)
+log_text.pack()
+
+root.mainloop()
+
