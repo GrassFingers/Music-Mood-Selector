@@ -8,7 +8,7 @@ load_dotenv()
 
 mood_map = {
     "happy" : ["happy", "cheerful", "upbeat", "feel good", "joyful", "positive"],
-    "yearning": ["yearning", "sad", "depressed", "melancholy", "heartbreak", "gloomy"],
+    "sad": ["yearning", "sad", "depressed", "melancholy", "heartbreak", "gloomy"],
     "chill": ["chill", "mellow", "relaxed", "calm", "ambient", "lo-fi"],
     "gym": ["gym", "party", "dance", "club", "high energy", "electronic"]
 }
@@ -30,6 +30,7 @@ def get_all_tracks(sp, playlist_id):
     fields = "items(track(uri, name, artists)), next"
     #get all items
     try:
+        #use Spotify's API to get playlist data
         results = sp.playlist_tracks(playlist_id, fields = fields)
     except Exception as e:
         print("Invalid playlist ID/link please try again.")
@@ -84,7 +85,7 @@ def analyse_tag(api_key, name, artists, target_mood):
         else:
             return False 
 
-        #check if tags in all_tags_list match target_mood
+        #check any tags in all_tags_list match target_mood
         for this_tag in all_tags_list:
             if this_tag.lower() in mood_map[target_mood]:
                 return True 
@@ -96,11 +97,14 @@ def analyse_tag(api_key, name, artists, target_mood):
 def get_target_mood_tracks(api_key, all_tracks, target_mood):
     target_mood_tracks = []
 
+    #loop through all tracks in provided playlist
     for this_track in all_tracks:
         this_name = this_track[1]
         this_artist = this_track[2]
 
+        #call analyse_tag to see if it matched the target mood
         if analyse_tag(api_key, this_name, this_artist, target_mood):
+            #add to list of tracks which match target mood
             target_mood_tracks.append(this_track)
     
     return target_mood_tracks
@@ -117,6 +121,7 @@ def create_playlist(sp, target_mood_tracks, target_mood, original_playlist_id):
     playlist_title = target_mood[0].upper() + target_mood[1:]
     description = f"{playlist_title} mood playlist made by Music Mood Selector."
 
+    #create new playlist using Spotify's API
     new_playlist = sp.user_playlist_create(
         user = current_user_id,
         name = new_playlist_name,
@@ -130,6 +135,7 @@ def create_playlist(sp, target_mood_tracks, target_mood, original_playlist_id):
     
     return new_playlist['external_urls']['spotify']
 
+#calling functions to test functionality in terminal
 def main():
     sp = get_spotify_client()
     lastfm_api_key = os.getenv("API_KEY")
@@ -149,7 +155,7 @@ def main():
     #validate input target mood
     valid_target_mood = False
     while not valid_target_mood:
-        target_mood = input("Choose one of the available moods: 'happy', 'yearning', 'chill', 'gym'\nYour mood: ")
+        target_mood = input("Choose one of the available moods: 'happy', 'sad', 'chill', 'gym'\nYour mood: ")
 
         if target_mood.lower() in mood_map:
             valid_target_mood = True
@@ -158,8 +164,10 @@ def main():
         
     target_mood_tracks = get_target_mood_tracks(lastfm_api_key, all_tracks, target_mood)
 
+    #if list of tracks which match target mood is empty exit 
     if not target_mood_tracks:
         print(f"Sorry, no songs in this playlist matched the '{target_mood}' mood.")
+        return 
     else:
         new_playlist_url = create_playlist(sp, target_mood_tracks, target_mood, playlist_input)
         print(f"Successfully created new playlist: {new_playlist_url}")
