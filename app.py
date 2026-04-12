@@ -3,6 +3,16 @@ import os
 from dotenv import load_dotenv
 from MusicMoodSelector import get_spotify_client, get_all_tracks, analyse_tag, get_target_mood_tracks, create_playlist, mood_map
 
+#map for images to match mood
+mood_images = {
+    "happy" : "assets/FigureHappy.png",
+    "sad" : "assets/FigureSad.png",
+    "chill" : "assets/FigureChill.png",
+    "gym" : "assets/FigureGym.png"
+}
+default_image = "assets/FigureNeutral.png"
+
+
 st.set_page_config(page_title="Music Mood Selector", layout = "centered")
 
 st.markdown("""
@@ -31,6 +41,21 @@ st.markdown("""
         font-family: 'Press Start 2P', cursive !important;
         font-size: 10px !important;
     }
+    /* prevent blurs */
+/* Remove the border and center the image */
+    img {
+        image-rendering: pixelated !important;
+        border: none !important; /* Removes the border */
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    /* Ensure the container for the image is centered */
+    div[data-testid="stImage"] {
+        display: flex !important;
+        justify-content: center !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -47,6 +72,10 @@ playlist_url = st.text_input("Enter your playlist URL/ID")
 #create container for moood buttons
 c = st.container()
 c.write("Choose your desired mood")
+
+#displaying figure
+image_to_show = mood_images.get(st.session_state.selected_mood, default_image)
+st.image(image_to_show, width = 150)
 
 mood_button_cols = st.columns(len(mood_map))
 
