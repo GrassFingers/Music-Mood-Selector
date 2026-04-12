@@ -5,6 +5,35 @@ from MusicMoodSelector import get_spotify_client, get_all_tracks, analyse_tag, g
 
 st.set_page_config(page_title="Music Mood Selector", layout = "centered")
 
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    /* Force the font on every text */
+    * {
+        font-family: 'Press Start 2P', cursive !important;
+    }
+
+    /* Fix the Title specifically */
+    h1 {
+        font-family: 'Press Start 2P', cursive !important;
+        font-size: 32px !important; /* Pixel fonts are big, keep this reasonable */
+    }
+
+    /* Fix paragraph text */
+    p, div, label {
+        font-family: 'Press Start 2P', cursive !important;
+        font-size: 12px !important;
+    }
+
+    /* Fix Buttons */
+    div.stButton > button {
+        font-family: 'Press Start 2P', cursive !important;
+        font-size: 10px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 load_dotenv()
 
 st.title("Music Mood Selector")
