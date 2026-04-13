@@ -25,7 +25,6 @@ def get_spotify_client():
     return sp
 
 def get_all_tracks(sp, playlist_id):
-
     all_tracks = []
     fields = "items(track(uri, name, artists)), next"
     #get all items

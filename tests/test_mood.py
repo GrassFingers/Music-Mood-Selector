@@ -1,6 +1,12 @@
 import pytest
 from unittest.mock import patch 
-from MusicMoodSelector import analyse_tag 
+import sys
+import os
+
+#adds the parent folder to the system path so Python can find it
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from MusicMoodSelector import analyse_tag
 
 def test_analyse_tag_logic_mood_map():
     from MusicMoodSelector import mood_map
@@ -9,6 +15,13 @@ def test_analyse_tag_logic_mood_map():
     assert "sad" in mood_map["sad"]
     assert "chill" in mood_map["chill"]
     assert "gym" in mood_map["gym"]
+
+def test_analyse_tag_failed_lifefm_request():
+    with patch('requests.get') as mock_get:
+        mock_get.return_value.status_code = 500
+
+        result = analyse_tag("FAKE KEY", "TRACK NAME", "ARTISTS", "happy")
+        assert result == False
 
 def test_analyse_tag_lifefm_call():
     with patch('requests.get') as mock_get:
@@ -26,3 +39,26 @@ def test_analyse_tag_lifefm_call():
         result = analyse_tag("FAKE KEY", "TRACK NAME", "ARTISTS", "happy")
         assert result == True
 
+def test_analyse_tag_empty_playlist():
+    with patch('requests.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "toptags" : {
+                "tag" : [
+
+                ]
+            }
+        }
+
+        result = analyse_tag("FAKE KEY", "TRACK NAME", "ARTISTS", "happy")
+        assert result == False
+
+def test_analyse_tag_missing_toptags_key():
+    with patch('requests.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "error" : "Track not found"
+        }
+
+        result = analyse_tag("FAKE KEY", "TRACK NAME", "ARTISTS", "happy")
+        assert result == False

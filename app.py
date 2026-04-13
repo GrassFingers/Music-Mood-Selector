@@ -40,6 +40,7 @@ st.markdown("""
         font-family: 'Press Start 2P', cursive !important;
         font-size: 10px !important;
     }
+            
     /* prevent blurs */
     /* Remove the border and center the image */
     img {
@@ -55,17 +56,18 @@ st.markdown("""
         display: flex !important;
         justify-content: center !important;
     }
-/* 1. Target the button via its data-testid */
+            
+    /* Target the button via its data-testid */
     [data-testid="stSidebarCollapseButton"] {
         display: none !important;
     }
 
-    /* 2. Target the button container inside the header */
+    /* Target the button container inside the header */
     div[data-testid="stHeader"] button {
         display: none !important;
     }
 
-    /* 3. This one hides the actual text content of the button */
+    /* This one hides the actual text content of the button */
     [data-testid="stSidebarCollapseButton"] > span {
         display: none !important;
     }
