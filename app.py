@@ -12,7 +12,6 @@ mood_images = {
 }
 default_image = "assets/FigureNeutral.png"
 
-
 st.set_page_config(page_title="Music Mood Selector", layout = "centered")
 
 st.markdown("""
@@ -42,7 +41,7 @@ st.markdown("""
         font-size: 10px !important;
     }
     /* prevent blurs */
-/* Remove the border and center the image */
+    /* Remove the border and center the image */
     img {
         image-rendering: pixelated !important;
         border: none !important; /* Removes the border */
@@ -55,6 +54,20 @@ st.markdown("""
     div[data-testid="stImage"] {
         display: flex !important;
         justify-content: center !important;
+    }
+/* 1. Target the button via its data-testid */
+    [data-testid="stSidebarCollapseButton"] {
+        display: none !important;
+    }
+
+    /* 2. Target the button container inside the header */
+    div[data-testid="stHeader"] button {
+        display: none !important;
+    }
+
+    /* 3. This one hides the actual text content of the button */
+    [data-testid="stSidebarCollapseButton"] > span {
+        display: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -71,12 +84,26 @@ playlist_url = st.text_input("Enter your playlist URL/ID")
 
 #create container for moood buttons
 c = st.container()
-c.write("Choose your desired mood")
+c.write("Choose your desired mood with Mimi")
 
 #displaying figure
-image_to_show = mood_images.get(st.session_state.selected_mood, default_image)
-st.image(image_to_show, width = 150)
 
+#sidebar to reset figure
+with st.sidebar:
+    st.header("Settings")
+
+    #reset button
+    if st.button("Reset Mimi"):
+        st.session_state.selected_mood = None
+        st.rerun()
+
+image_to_show = mood_images.get(st.session_state.selected_mood, default_image)
+
+col1, col2, col3 = st.columns([1.5, 2, 1])
+with col2:
+    st.image(image_to_show, width = 250)
+
+#displaying mood buttons
 mood_button_cols = st.columns(len(mood_map))
 
 for i, mood in enumerate(mood_map.keys()):
@@ -91,8 +118,7 @@ for i, mood in enumerate(mood_map.keys()):
 
 api_key = os.getenv("API_KEY")
 
-# Interaction Logic
-
+# interaction Logic
 if st.button("Generate Playlist", type="primary"):
     if not playlist_url or not api_key:
         st.error("Missing Playlist URL or API Key.")
@@ -100,7 +126,7 @@ if st.button("Generate Playlist", type="primary"):
         st.error("Please select your desired mood first!")
     else:
         target_mood = st.session_state.selected_mood
-        with st.spinner("Analyzing tracks and filtering by mood..."):
+        with st.spinner("One second, making your playlist..."):
             try:
                 # Logic 
                 sp = get_spotify_client()
