@@ -118,7 +118,10 @@ for i, mood in enumerate(mood_map.keys()):
         st.session_state.selected_mood = mood
         st.rerun()
 
-api_key = st.secrets.get("API_KEY") or os.getenv("API_KEY")
+try:
+    api_key = st.secrets.get("API_KEY") 
+except:
+    api_key = os.getenv("API_KEY")
 
 # interaction Logic
 if st.button("Generate Playlist", type="primary"):
@@ -133,14 +136,19 @@ if st.button("Generate Playlist", type="primary"):
                 # Logic 
                 sp = get_spotify_client()
                 tracks = get_all_tracks(sp, playlist_url)
-                filtered = get_target_mood_tracks(api_key, tracks, target_mood)
-                
-                if filtered:
-                    new_url = create_playlist(sp, filtered, target_mood, playlist_url)
-                    st.success("Playlist created successfully!")
-                    st.link_button("Open Playlist", new_url)
+
+                #check if tracks is None
+                if tracks is None:
+                    st.error("Could not fetch playlist. Please check your URL or API keys.")
                 else:
-                    st.info("No tracks matched that mood.")
+                    filtered = get_target_mood_tracks(api_key, tracks, target_mood)
+                    
+                    if filtered:
+                        new_url = create_playlist(sp, filtered, target_mood, playlist_url)
+                        st.success("Playlist created successfully!")
+                        st.link_button("Open Playlist", new_url)
+                    else:
+                        st.info("No tracks matched that mood.")
             except Exception as e:
                 st.error(f"Error: {e}")
 
