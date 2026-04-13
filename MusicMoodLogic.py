@@ -19,22 +19,32 @@ new_playlist = []
 def get_spotify_client():
     # Use st.secrets if available else fallback to os.getenv
     try:
-        client_id = st.secrets.get("CLIENT_ID") 
-        client_secret = st.secrets.get("CLIENT_SECRET") 
-        redirect_uri = st.secrets.get("REDIRECT_URI") 
-        scope = st.secrets.get("SCOPE") 
+        c_id = st.secrets["CLIENT_ID"]
+        c_sec = st.secrets["CLIENT_SECRET"]
+        r_uri = st.secrets["REDIRECT_URI"]
+        scope = st.secrets["SCOPE"]
+        ref_tok = st.secrets["REFRESH_TOKEN"]
     except:
-        client_id = os.getenv("CLIENT_ID")
-        client_secret = os.getenv("CLIENT_SECRET")
-        redirect_uri = os.getenv("REDIRECT_URI")
-        scope = os.getenv("SCOPE") 
+        c_id = os.getenv("CLIENT_ID")
+        c_sec = os.getenv("CLIENT_SECRET")
+        r_uri = os.getenv("REDIRECT_URI")
+        scope = os.getenv("SCOPE")
+        ref_tok = os.getenv("REFRESH_TOKEN")
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-        client_id=client_id,
-        client_secret=client_secret,
-        redirect_uri=redirect_uri,
+    # Create the auth_manager instance
+    auth_manager = SpotifyOAuth(
+        client_id=c_id,
+        client_secret=c_sec,
+        redirect_uri=r_uri,
         scope=scope
-    ))
+    )
+
+    # Use the instance to refresh the token
+    token_info = auth_manager.refresh_access_token(ref_tok)
+
+    # Create the Spotify client 
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    #sp = spotipy.Spotify(auth_manager=auth_manager)
     return sp
 
 def get_all_tracks(sp, playlist_id):
