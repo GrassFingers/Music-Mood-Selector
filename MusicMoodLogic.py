@@ -32,17 +32,21 @@ def get_spotify_client():
         ref_tok = os.getenv("REFRESH_TOKEN")
 
     # Create the auth_manager instance
+    st.write("DEBUG: Initializing SpotifyOAuth...") #debug line
     auth_manager = SpotifyOAuth(
         client_id=c_id,
         client_secret=c_sec,
         redirect_uri=r_uri,
-        scope=scope
+        scope=scope,
+        open_browser=False
     )
 
     # Use the instance to refresh the token
+    st.write("DEBUG: Attempting token refresh...") #debug line
     token_info = auth_manager.refresh_access_token(ref_tok)
 
     # Create the Spotify client 
+    st.write("DEBUG: Refresh successful!") #debug line
     sp = spotipy.Spotify(auth=token_info['access_token'])
     #sp = spotipy.Spotify(auth_manager=auth_manager)
     return sp
