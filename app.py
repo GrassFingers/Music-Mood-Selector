@@ -118,7 +118,7 @@ for i, mood in enumerate(mood_map.keys()):
         st.session_state.selected_mood = mood
         st.rerun()
 
-api_key = os.getenv("API_KEY")
+api_key = st.secrets.get("API_KEY") or os.getenv("API_KEY")
 
 # interaction Logic
 if st.button("Generate Playlist", type="primary"):
