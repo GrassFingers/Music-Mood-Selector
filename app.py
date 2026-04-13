@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-from MusicMoodSelector import get_spotify_client, get_all_tracks, analyse_tag, get_target_mood_tracks, create_playlist, mood_map
+from MusicMoodLogic import get_spotify_client, get_all_tracks, analyse_tag, get_target_mood_tracks, create_playlist, mood_map
 
 #map for images to match mood
 mood_images = {

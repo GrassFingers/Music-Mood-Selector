@@ -6,10 +6,10 @@ import os
 #adds the parent folder to the system path so Python can find it
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from MusicMoodSelector import analyse_tag
+from MusicMoodLogic import analyse_tag
 
 def test_analyse_tag_logic_mood_map():
-    from MusicMoodSelector import mood_map
+    from MusicMoodLogic import mood_map
     #test mood_map is configured correctly
     assert "happy" in mood_map["happy"]
     assert "sad" in mood_map["sad"]
