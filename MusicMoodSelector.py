@@ -3,6 +3,7 @@ from spotipy.oauth2 import SpotifyOAuth
 import requests
 import os
 from dotenv import load_dotenv 
+import streamlit as st
 
 load_dotenv()
 
@@ -16,11 +17,17 @@ mood_map = {
 new_playlist = []
 
 def get_spotify_client():
-    sp = spotipy.Spotify(auth_manager = SpotifyOAuth(
-        client_id = os.getenv("CLIENT_ID"),
-        client_secret = os.getenv("CLIENT_SECRET"),
-        redirect_uri= os.getenv("REDIRECT_URI"),
-        scope= os.getenv("SCOPE")
+    # Use st.secrets if available else fallback to os.getenv
+    client_id = st.secrets.get("CLIENT_ID") or os.getenv("CLIENT_ID")
+    client_secret = st.secrets.get("CLIENT_SECRET") or os.getenv("CLIENT_SECRET")
+    redirect_uri = st.secrets.get("REDIRECT_URI") or os.getenv("REDIRECT_URI")
+    scope = st.secrets.get("SCOPE") or os.getenv("SCOPE")
+
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=redirect_uri,
+        scope=scope
     ))
     return sp
 
