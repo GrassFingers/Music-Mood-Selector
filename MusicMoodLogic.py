@@ -17,7 +17,7 @@ mood_map = {
 new_playlist = []
 
 def get_spotify_client():
-    # Use st.secrets if available else fallback to os.getenv
+    # Use st.secrets (streamlit) if available else fallback to os.getenv (local)
     try:
         c_id = st.secrets["CLIENT_ID"]
         c_sec = st.secrets["CLIENT_SECRET"]
@@ -45,7 +45,6 @@ def get_spotify_client():
 
     # Create the Spotify client 
     sp = spotipy.Spotify(auth=token_info['access_token'])
-    #sp = spotipy.Spotify(auth_manager=auth_manager)
     return sp
 
 def get_all_tracks(sp, playlist_id):

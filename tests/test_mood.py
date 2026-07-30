@@ -18,12 +18,15 @@ def test_analyse_tag_logic_mood_map():
 
 def test_analyse_tag_failed_lifefm_request():
     with patch('requests.get') as mock_get:
+        #error status code 
         mock_get.return_value.status_code = 500
 
+        #test analyse_tag returns false on server error
         result = analyse_tag("FAKE KEY", "TRACK NAME", "ARTISTS", "happy")
         assert result == False
 
 def test_analyse_tag_lifefm_call():
+    #simulate return value from lifefm's api
     with patch('requests.get') as mock_get:
         #expected return values of mock
         mock_get.return_value.status_code = 200
@@ -40,6 +43,7 @@ def test_analyse_tag_lifefm_call():
         assert result == True
 
 def test_analyse_tag_empty_playlist():
+    #mock empty tags list for a track
     with patch('requests.get') as mock_get:
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = {
@@ -54,6 +58,7 @@ def test_analyse_tag_empty_playlist():
         assert result == False
 
 def test_analyse_tag_missing_toptags_key():
+    #mock track not found 
     with patch('requests.get') as mock_get:
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = {
